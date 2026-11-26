@@ -1,4 +1,4 @@
-name: Zuzify Windows build
+name: Zuzify Windows build and release
 on:
   push:
     branches: [main]
@@ -6,6 +6,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: zuzify-build-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
   build:
     runs-on: windows-latest
@@ -26,7 +29,43 @@ jobs:
       - run: npm test
         working-directory: server
       - run: dotnet publish Zuzify.csproj -c Release -r win-x64 --self-contained true -o publish
+      - name: Package Windows release
+        shell: pwsh
+        run: |
+          if (!(Test-Path publish/Zuzify.exe)) { throw "Missing executable" }
+          if (!(Test-Path publish/ui/dist/index.html)) { throw "Missing bundled React UI" }
+          New-Item -ItemType Directory -Force release | Out-Null
+          Copy-Item README.md publish/README.md
+          New-Item -ItemType Directory -Force publish/server | Out-Null
+          Copy-Item server/*.mjs,server/package*.json publish/server/
+          Compress-Archive -Path publish/* -DestinationPath release/Zuzify-Windows-x64.zip -Force
       - uses: actions/upload-artifact@v4
         with:
           name: Zuzify-Windows-x64
-          path: publish/
+          path: release/Zuzify-Windows-x64.zip
+          if-no-files-found: error
+  release:
+    needs: build
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: Zuzify-Windows-x64
+          path: release
+      - name: Publish versioned GitHub prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          version="$(sed -n 's/.*<Version>\([^<]*\)<\/Version>.*/\1/p' Zuzify.csproj)"
+          test -n "$version"
+          tag="v$version"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $tag already exists; increment the project version for another release."
+          else
+            gh release create "$tag" release/Zuzify-Windows-x64.zip --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Zuzify $version — Windows preview" --prerelease --notes "Extract the ZIP and launch Zuzify.exe. Microsoft Edge WebView2 Runtime is required. Account and license functionality require starting the included development server (Node.js 22.13+); see README.md. Test billing only. Not a production-ready release."
+          fi
