@@ -1,4 +1,4 @@
-name: Windows build
+name: Zuzify Windows build
 on:
   push:
     branches: [main]
@@ -11,10 +11,20 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
-      - run: dotnet build Zuzify.csproj -c Release
+      - run: npm install --no-audit --no-fund
+        working-directory: ui
+      - run: npm run build
+        working-directory: ui
+      - run: npm install --no-audit --no-fund
+        working-directory: server
+      - run: npm test
+        working-directory: server
       - run: dotnet publish Zuzify.csproj -c Release -r win-x64 --self-contained true -o publish
       - uses: actions/upload-artifact@v4
         with:
