@@ -1,0 +1,23 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+process.env.ZUZIFY_DB=':memory:';
+const {db,password,check,session,identity,issue,redeem,digest,entitlements}=await import('./store.mjs');
+const {plans,plan}=await import('./plans.mjs');
+test('prices and unknown plan rejection',()=>{assert.equal(plans.monthly.cents,2500);assert.equal(plans.ultimate.cents,20000);assert.equal(plan('constructor'),null);assert.throws(()=>issue('invalid'));});
+test('passwords, sessions, redemption and revocation',()=>{
+ db.prepare('INSERT INTO accounts VALUES(?,?,?)').run('a','alpha',password('long-test-password'));
+ db.prepare('INSERT INTO accounts VALUES(?,?,?)').run('b','beta',password('other-test-password'));
+ const stored=db.prepare('SELECT password FROM accounts WHERE id=?').get('a').password;
+ assert.ok(check('long-test-password',stored));assert.equal(check('incorrect',stored),false);
+ const token=session('a');assert.equal(identity(token).id,'a');assert.equal(identity('fake'),undefined);
+ const code=issue('standard');assert.match(code,/^ZUZIFY-[0-9A-F]{48}$/);
+ assert.equal(redeem('a',code),true);assert.equal(redeem('b',code),false);
+ assert.equal(entitlements('a')[0].plan,'standard');
+ db.prepare('UPDATE licenses SET revoked=1 WHERE hash=?').run(digest(code));
+ assert.equal(entitlements('a').length,0);
+ const monthly=issue('monthly');assert.equal(redeem('b',monthly),true);assert.ok(entitlements('b')[0].expires>Date.now());
+ db.prepare('UPDATE licenses SET expires=? WHERE hash=?').run(Date.now()-1,digest(monthly));
+ assert.equal(entitlements('b').length,0);
+ const expired=issue('monthly',Date.now()-1);assert.equal(redeem('a',expired),false);
+ db.prepare('DELETE FROM sessions WHERE hash=?').run(digest(token));assert.equal(identity(token),undefined);
+});
