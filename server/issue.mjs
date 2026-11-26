@@ -1,0 +1,3 @@
+import { issue,db,digest } from './store.mjs';
+const [action,value]=process.argv.slice(2);
+if(action==='revoke'&&value){console.log(db.prepare('UPDATE licenses SET revoked=1 WHERE hash=?').run(digest(value.trim().toUpperCase())).changes?'Revoked':'Not found');}else if(action==='create'&&value){console.log(issue(value));}else{console.error('Usage: npm run issue -- create standard | revoke KEY');process.exitCode=1;}
