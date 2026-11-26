@@ -1,0 +1,17 @@
+{
+  "name": "zuzify-license-server",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "issue": "node issue.mjs",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "stripe": "17.5.0"
+  }
+}
