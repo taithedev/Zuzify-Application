@@ -6,3 +6,10 @@ obj/
 *.pfx
 .env
 .env.*
+!.env.example
+node_modules/
+ui/dist/
+publish/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
