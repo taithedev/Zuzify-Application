@@ -1,33 +1,38 @@
-# Zuzify
-Native Windows security workspace, independently maintained in C# / WPF. No Electron, browser runtime or Lovable dependency.
+# Zuzify 0.2.0 — development preview
+A native Windows WPF host with a bundled React UI using Microsoft's WebView2 runtime, not Electron or Lovable. All application source is in this repository.
 
-## Build and run
-Install the .NET 8 SDK on Windows, open Zuzify.csproj in Visual Studio 2022 with the .NET desktop development workload, or run:
+## Run on Windows
+Install .NET 8 SDK, Node.js 22.13+ and Microsoft Edge WebView2 Runtime.
+In one terminal:
 ```powershell
-dotnet build -c Release
-dotnet run
-dotnet publish -c Release -r win-x64 --self-contained true
+cd server
+npm install
+npm start
 ```
+In another, from the repo root:
+```powershell
+cd ui
+npm install
+npm run build
+cd ..
+dotnet run
+```
+Publish with `dotnet publish -c Release -r win-x64 --self-contained true`. The CI workflow builds and uploads a Windows artifact.
 
-## Implemented
-- Local SHA-256 file verification and checksum comparison
-- Cryptographically random password generation
-- Read-only device diagnostics
-- Session security checklist
-- Generic activity log and text export
-- Theme accent selection and animated page transitions
-- Plan selection preview
+## Zuzify licenses
+Register an account in the application. In another terminal in server, with the same database and working directory as the service:
+```powershell
+npm run issue -- create standard
+```
+Redeem the printed ZUZIFY code in Account. Codes are random, stored hashed, single-use and account-bound; monthly manual codes expire 30 days from issuance. To revoke a manual code: `npm run issue -- revoke KEY`. Licensed tools check the server before every action. This is not tamper-proof DRM; locally running code can be modified.
 
-## Proposed pricing (USD)
-| Plan | Price |
-|---|---|
-| Monthly | $25/month |
-| Standard | $45 one-time |
-| Pro | $85 one-time |
-| Elite | $125 one-time |
-| Ultimate | $200 one-time |
+## Plans (USD)
+Monthly $25/month, Standard $45, Pro $85, Elite $125, Ultimate $200 one-time. All currently grant identical access.
+Optional Stripe **test mode only**: configure STRIPE_SECRET_KEY (sk_test_), STRIPE_WEBHOOK_SECRET and CHECKOUT_RETURN_URL through environment variables. Send Stripe test events to /webhook, including checkout.session.completed and customer.subscription.created/updated/deleted. Only signed test events grant entitlements. Live keys are rejected. No real payments are enabled.
+For production, an eligible adult account holder must configure the payment account and terms, deploy the API behind HTTPS, and complete security and billing lifecycle testing. Use ZUZIFY_API_URL to select the trusted service endpoint.
 
-This is a development preview. Prices are informational, feature tiers are not enforced, and there is no live billing, account backend, license validation or updater. Do not sell this preview as a completed product. A production launch requires tested entitlement handling, clear refund and renewal terms, and an eligible payment account.
+## Tools
+SHA-256 file verification, local password generator, device information, session checklist, activity report and accent themes. No account takeover, exploit automation or unauthorized access tools.
 
-## Responsible use
-Use the application for defensive security and files or devices you are authorized to inspect. No unauthorized account access, exploit automation, credential theft, or interference with other services is supported. A disclaimer does not remove legal obligations. No file contents, passwords or paths are uploaded by this application.
+## Limitations
+Development SQLite storage; no password recovery, MFA, updater, feature-tier differentiation, durable session login, production deployment or live billing yet. Tests cover core license behavior, not real Stripe webhooks or Windows UI. Do not sell this preview as a complete product.
